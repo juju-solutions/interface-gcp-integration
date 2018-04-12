@@ -22,7 +22,7 @@ The flags that are set by the requires side of this interface are:
 import json
 from hashlib import sha256
 from urllib.parse import urljoin
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 
 from charmhelpers.core import unitdata
 
@@ -62,6 +62,7 @@ class GCPRequires(Endpoint):
     _metadata_url = 'http://metadata.google.internal/computeMetadata/v1/'
     _instance_url = urljoin(_metadata_url, 'instance', 'name')
     _zone_url = urljoin(_metadata_url, 'instance', 'zone')
+    _metadata_headers = {'Metadata-Flavor': 'Google'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -116,7 +117,9 @@ class GCPRequires(Endpoint):
             if cached:
                 self._instance = cached
             else:
-                with urlopen(self._instance_url) as fd:
+                req = Request(self._instance_url,
+                              headers=self._metadata_headers)
+                with urlopen(req) as fd:
                     self._instance = fd.read(READ_BLOCK_SIZE).decode('utf8')
                 unitdata.kv().set(cache_key, self._instance)
         return self._instance
@@ -132,7 +135,9 @@ class GCPRequires(Endpoint):
             if cached:
                 self._zone = cached
             else:
-                with urlopen(self._zone_url) as fd:
+                req = Request(self._zone_url,
+                              headers=self._metadata_headers)
+                with urlopen(req) as fd:
                     zone = fd.read(READ_BLOCK_SIZE).decode('utf8')
                     self._zone = zone.split('/')[-1]
                 unitdata.kv().set(cache_key, self._zone)
