@@ -1,0 +1,4 @@
+name: gcp
+summary: Interface for connecting to the GCP integration charm.
+version: 1
+maintainer: Cory Johns <cory.johns@canonical.com>
