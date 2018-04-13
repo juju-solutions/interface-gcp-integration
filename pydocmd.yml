@@ -1,12 +1,12 @@
-site_name: 'AWS Integration Interface'
+site_name: 'GCP Integration Interface'
 
 generate:
   - requires.md:
     - requires
-    - requires.AWSRequires+
+    - requires.GCPRequires+
   - provides.md:
     - provides
-    - provides.AWSProvides+
+    - provides.GCPProvides+
     - provides.IntegrationRequest+
 
 pages:
