@@ -11,10 +11,7 @@ The flags that are set by the provides side of this interface are:
   them as complete.
 """
 
-import json
-from hashlib import sha256
-
-from charmhelpers.core import unitdata
+from operator import attrgetter
 
 from charms.reactive import Endpoint
 from charms.reactive import when
@@ -29,39 +26,31 @@ class GCPProvides(Endpoint):
     from charms.reactive import when, endpoint_from_flag
     from charms import layer
 
-    @when('endpoint.gcp.requested')
+    @when('endpoint.gcp.requests-pending')
     def handle_requests():
-        gcp = endpoint_from_flag('endpoint.gcp.requested')
+        gcp = endpoint_from_flag('endpoint.gcp.requests-pending')
         for request in gcp.requests:
             if request.instance_labels:
-                label_instance(
+                layer.gcp.label_instance(
                     request.instance,
                     request.zone,
                     request.instance_labels)
             if request.requested_load_balancer_management:
                 layer.gcp.enable_load_balancer_management(
-                    request.application_name,
+                    request.charm,
                     request.instance,
                     request.zone,
                 )
             # ...
-            request.mark_completed()
+        gcp.mark_completed()
     ```
     """
 
     @when('endpoint.{endpoint_name}.changed')
     def check_requests(self):
-        requests = self.requests
-        toggle_flag(self.expand_name('requested'), len(requests) > 0)
+        toggle_flag(self.expand_name('requests-pending'),
+                    len(self.requests) > 0)
         clear_flag(self.expand_name('changed'))
-
-    @when('endpoint.{endpoint_name}.departed')
-    def cleanup(self):
-        for unit in self.all_departed_units:
-            request = IntegrationRequest(unit)
-            request.clear()
-        self.all_departed_units.clear()
-        clear_flag(self.expand_name('departed'))
 
     @property
     def requests(self):
@@ -69,29 +58,42 @@ class GCPProvides(Endpoint):
         A list of the new or updated #IntegrationRequests that
         have been made.
         """
-        all_requests = [IntegrationRequest(unit)
-                        for unit in self.all_joined_units]
-        return [request for request in all_requests
-                if request.changed]
+        if not hasattr(self, '_requests'):
+            all_requests = [IntegrationRequest(unit)
+                            for unit in self.all_joined_units]
+            is_changed = attrgetter('is_changed')
+            self._requests = list(filter(is_changed, all_requests))
+        return self._requests
 
     @property
-    def application_names(self):
+    def relation_ids(self):
         """
-        Set of names of all applications that are still joined.
+        A list of the IDs of all established relations.
         """
-        return {unit.application_name for unit in self.all_joined_units}
+        return [relation.relation_id for relation in self.relations]
 
-    @property
-    def unit_instances(self):
+    def get_departed_charms(self):
         """
-        Mapping of unit names to instance names and zones for all joined units.
+        Get a list of all charms that have had all units depart since the
+        last time this was called.
         """
-        return {
-            unit.unit_name: {
-                'instance': unit.received['instance'],
-                'zone': unit.received['zone'],
-            } for unit in self.all_joined_units
-        }
+        joined_charms = {unit.received['charm']
+                         for unit in self.all_joined_units
+                         if unit.received['charm']}
+        departed_charms = [unit.received['charm']
+                           for unit in self.all_departed_units
+                           if unit.received['charm'] not in joined_charms]
+        self.all_departed_units.clear()
+        return departed_charms
+
+    def mark_completed(self):
+        """
+        Mark all requests as completed and remove the `requests-pending` flag.
+        """
+        for request in self.requests:
+            request.mark_completed()
+        clear_flag(self.expand_name('requests-pending'))
+        self._requests = []
 
 
 class IntegrationRequest:
@@ -100,48 +102,56 @@ class IntegrationRequest:
     """
     def __init__(self, unit):
         self._unit = unit
-        self._hash = sha256(json.dumps(dict(unit.received),
-                                       sort_keys=True).encode('utf8')
-                            ).hexdigest()
 
     @property
-    def hash(self):
-        """
-        SHA hash of the data for this request.
-        """
-        return self._hash
+    def _to_publish(self):
+        return self._unit.relation.to_publish
 
     @property
-    def _hash_key(self):
-        endpoint = self._unit.relation.endpoint
-        return endpoint.expand_name('request.{}'.format(self.instance))
+    def _completed(self):
+        return self._to_publish.get('completed', {})
 
     @property
-    def changed(self):
+    def _requested(self):
+        return self._unit.received['requested']
+
+    @property
+    def is_changed(self):
         """
         Whether this request has changed since the last time it was
-        marked completed.
+        marked completed (if ever).
         """
-        if not (self.instance and self._requested):
+        if not all([self.charm, self.instance, self.zone, self._requested]):
             return False
-        saved_hash = unitdata.kv().get(self._hash_key)
-        result = saved_hash != self.hash
-        return result
+        return self._completed.get(self.instance) != self._requested
 
     def mark_completed(self):
         """
         Mark this request as having been completed.
         """
-        completed = self._unit.relation.to_publish.get('completed', {})
-        completed[self.instance] = self.hash
-        unitdata.kv().set(self._hash_key, self.hash)
-        self._unit.relation.to_publish['completed'] = completed
+        completed = self._completed
+        completed[self.instance] = self._requested
+        self._to_publish['completed'] = completed  # have to explicitly update
 
-    def clear(self):
+    def set_credentials(self, credentials):
         """
-        Clear this request's cached data.
+        Set the credentials for this request.
         """
-        unitdata.kv().unset(self._hash_key)
+        self._unit.relation.to_publish['credentials'] = credentials
+
+    @property
+    def has_credentials(self):
+        """
+        Whether or not credentials have been set via `set_credentials`.
+        """
+        return 'credentials' in self._unit.relation.to_publish
+
+    @property
+    def relation_id(self):
+        """
+        The ID of the relation for the unit making the request.
+        """
+        return self._unit.relation.relation_id
 
     @property
     def unit_name(self):
@@ -158,8 +168,11 @@ class IntegrationRequest:
         return self._unit.application_name
 
     @property
-    def _requested(self):
-        return self._unit.received['requested']
+    def charm(self):
+        """
+        The charm name reported for this request.
+        """
+        return self._unit.received['charm']
 
     @property
     def instance(self):
@@ -174,6 +187,13 @@ class IntegrationRequest:
         The zone reported for this request.
         """
         return self._unit.received['zone']
+
+    @property
+    def model_uuid(self):
+        """
+        The UUID of the model containing the application making this request.
+        """
+        return self._unit.received['model-uuid']
 
     @property
     def instance_labels(self):
@@ -193,17 +213,16 @@ class IntegrationRequest:
     @property
     def requested_network_management(self):
         """
-        Flag indicating whether the ability to manage networking (firewalls,
-        subnets, etc) was requested.
+        Flag indicating whether the ability to manage networking was requested.
         """
         return bool(self._unit.received['enable-network-management'])
 
     @property
-    def requested_load_balancer_management(self):
+    def requested_security_management(self):
         """
-        Flag indicating whether load balancer management was requested.
+        Flag indicating whether security management was requested.
         """
-        return bool(self._unit.received['enable-load-balancer-management'])
+        return bool(self._unit.received['enable-security-management'])
 
     @property
     def requested_block_storage_management(self):
@@ -227,24 +246,8 @@ class IntegrationRequest:
         return bool(self._unit.received['enable-object-storage-access'])
 
     @property
-    def object_storage_access_patterns(self):
-        """
-        List of patterns to which to restrict object storage access.
-        """
-        return list(
-            self._unit.received['object-storage-access-patterns'] or [])
-
-    @property
     def requested_object_storage_management(self):
         """
         Flag indicating whether object storage management was requested.
         """
         return bool(self._unit.received['enable-object-storage-management'])
-
-    @property
-    def object_storage_management_patterns(self):
-        """
-        List of patterns to which to restrict object storage management.
-        """
-        return list(
-            self._unit.received['object-storage-management-patterns'] or [])

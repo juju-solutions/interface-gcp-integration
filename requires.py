@@ -19,11 +19,13 @@ The flags that are set by the requires side of this interface are:
 """
 
 
-import json
-from hashlib import sha256
+import os
+import random
+import string
 from urllib.parse import urljoin
 from urllib.request import urlopen, Request
 
+from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
 from charms.reactive import Endpoint
@@ -38,6 +40,16 @@ READ_BLOCK_SIZE = 2048
 
 class GCPRequires(Endpoint):
     """
+    Interface to request integration access.
+
+    Note that due to resource limits and permissions granularity, policies are
+    limited to being applied at the charm level.  That means that, if any
+    permissions are requested (i.e., any of the enable methods are called),
+    what is granted will be the sum of those ever requested by any instance of
+    the charm on this cloud.
+
+    Labels, on the other hand, will be instance specific.
+
     Example usage:
 
     ```python
@@ -60,8 +72,8 @@ class GCPRequires(Endpoint):
     """
     # https://cloud.google.com/compute/docs/storing-retrieving-metadata
     _metadata_url = 'http://metadata.google.internal/computeMetadata/v1/'
-    _instance_url = urljoin(_metadata_url, 'instance', 'name')
-    _zone_url = urljoin(_metadata_url, 'instance', 'zone')
+    _instance_url = urljoin(_metadata_url, 'instance/name')
+    _zone_url = urljoin(_metadata_url, 'instance/zone')
     _metadata_headers = {'Metadata-Flavor': 'Google'}
 
     def __init__(self, *args, **kwargs):
@@ -89,17 +101,16 @@ class GCPRequires(Endpoint):
 
     @when('endpoint.{endpoint_name}.joined')
     def send_instance_info(self):
+        self._to_publish['charm'] = hookenv.charm_name()
         self._to_publish['instance'] = self.instance
         self._to_publish['zone'] = self.zone
+        self._to_publish['model-uuid'] = os.environ['JUJU_MODEL_UUID']
 
     @when('endpoint.{endpoint_name}.changed')
     def check_ready(self):
-        completed = self._received.get('completed', {})
-        actual_hash = completed.get(self.instance)
         # My middle name is ready. No, that doesn't sound right.
         # I eat ready for breakfast.
-        toggle_flag(self.expand_name('ready'),
-                    self._requested and actual_hash == self._expected_hash)
+        toggle_flag(self.expand_name('ready'), self.is_ready)
         clear_flag(self.expand_name('changed'))
 
     @when_not('endpoint.{endpoint_name}.joined')
@@ -120,7 +131,8 @@ class GCPRequires(Endpoint):
                 req = Request(self._instance_url,
                               headers=self._metadata_headers)
                 with urlopen(req) as fd:
-                    self._instance = fd.read(READ_BLOCK_SIZE).decode('utf8')
+                    instance = fd.read(READ_BLOCK_SIZE).decode('utf8').strip()
+                    self._instance = instance
                 unitdata.kv().set(cache_key, self._instance)
         return self._instance
 
@@ -138,24 +150,29 @@ class GCPRequires(Endpoint):
                 req = Request(self._zone_url,
                               headers=self._metadata_headers)
                 with urlopen(req) as fd:
-                    zone = fd.read(READ_BLOCK_SIZE).decode('utf8')
+                    zone = fd.read(READ_BLOCK_SIZE).decode('utf8').strip()
                     self._zone = zone.split('/')[-1]
                 unitdata.kv().set(cache_key, self._zone)
         return self._zone
 
     @property
-    def _expected_hash(self):
-        return sha256(json.dumps(dict(self._to_publish),
-                                 sort_keys=True).encode('utf8')).hexdigest()
+    def is_ready(self):
+        """
+        Whether or not the request for this instance has been completed.
+        """
+        requested = self._to_publish['requested']
+        completed = self._received.get('completed', {}).get(self.instance)
+        return requested and requested == completed
 
     @property
-    def _requested(self):
-        # whether or not a request has been issued
-        return self._to_publish['requested']
+    def credentials(self):
+        return self._received['credentials']
 
     def _request(self, keyvals):
+        alphabet = string.ascii_letters + string.digits
+        nonce = ''.join(random.choice(alphabet) for _ in range(8))
         self._to_publish.update(keyvals)
-        self._to_publish['requested'] = True
+        self._to_publish['requested'] = nonce
         clear_flag(self.expand_name('ready'))
 
     def label_instance(self, labels):
@@ -175,15 +192,15 @@ class GCPRequires(Endpoint):
 
     def enable_network_management(self):
         """
-        Request the ability to manage networking (firewalls, subnets, etc).
+        Request the ability to manage networking.
         """
         self._request({'enable-network-management': True})
 
-    def enable_load_balancer_management(self):
+    def enable_security_management(self):
         """
-        Request the ability to manage load balancers.
+        Request the ability to manage security (e.g., firewalls).
         """
-        self._request({'enable-load-balancer-management': True})
+        self._request({'enable-security-management': True})
 
     def enable_block_storage_management(self):
         """
@@ -191,34 +208,20 @@ class GCPRequires(Endpoint):
         """
         self._request({'enable-block-storage-management': True})
 
-    def enable_dns(self):
+    def enable_dns_management(self):
         """
         Request the ability to manage DNS.
         """
         self._request({'enable-dns': True})
 
-    def enable_object_storage_access(self, patterns=None):
+    def enable_object_storage_access(self):
         """
         Request the ability to access object storage.
-
-        # Parameters
-        `patterns` (list): If given, restrict access to the resources matching
-            the patterns.
         """
-        self._request({
-            'enable-object-storage-access': True,
-            'object-storage-access-patterns': patterns,
-        })
+        self._request({'enable-object-storage-access': True})
 
-    def enable_object_storage_management(self, patterns=None):
+    def enable_object_storage_management(self):
         """
         Request the ability to manage object storage.
-
-        # Parameters
-        `patterns` (list): If given, restrict management to the resources
-            matching the patterns.
         """
-        self._request({
-            'enable-object-storage-management': True,
-            'object-storage-management-patterns': patterns,
-        })
+        self._request({'enable-object-storage-management': True})

@@ -25,6 +25,16 @@ The flags that are set by the requires side of this interface are:
 GCPRequires(self, *args, **kwargs)
 ```
 
+Interface to request integration access.
+
+Note that due to resource limits and permissions granularity, policies are
+limited to being applied at the charm level.  That means that, if any
+permissions are requested (i.e., any of the enable methods are called),
+what is granted will be the sum of those ever requested by any instance of
+the charm on this cloud.
+
+Labels, on the other hand, will be instance specific.
+
 Example usage:
 
 ```python
@@ -45,39 +55,20 @@ def gcp_integration_ready():
     update_config_enable_gcp()
 ```
 
-<h2 id="requires.GCPRequires.enable_block_storage_management">enable_block_storage_management</h2>
-
-```python
-GCPRequires.enable_block_storage_management(self)
-```
-
-Request the ability to manage block storage.
-
-<h2 id="requires.GCPRequires.enable_load_balancer_management">enable_load_balancer_management</h2>
-
-```python
-GCPRequires.enable_load_balancer_management(self)
-```
-
-Request the ability to manage load balancers.
-
 <h2 id="requires.GCPRequires.instance">instance</h2>
 
 
 This unit's instance name.
 
-<h2 id="requires.GCPRequires.enable_object_storage_access">enable_object_storage_access</h2>
+<h2 id="requires.GCPRequires.is_ready">is_ready</h2>
 
-```python
-GCPRequires.enable_object_storage_access(self, patterns=None)
-```
 
-Request the ability to access object storage.
+Whether or not the request for this instance has been completed.
 
-__Parameters__
+<h2 id="requires.GCPRequires.zone">zone</h2>
 
-- __`patterns` (list)__: If given, restrict access to the resources matching
-    the patterns.
+
+The zone this unit is in.
 
 <h2 id="requires.GCPRequires.label_instance">label_instance</h2>
 
@@ -91,32 +82,6 @@ __Parameters__
 
 - __`labels` (dict)__: Mapping of labels names to values.
 
-<h2 id="requires.GCPRequires.zone">zone</h2>
-
-
-The zone this unit is in.
-
-<h2 id="requires.GCPRequires.enable_object_storage_management">enable_object_storage_management</h2>
-
-```python
-GCPRequires.enable_object_storage_management(self, patterns=None)
-```
-
-Request the ability to manage object storage.
-
-__Parameters__
-
-- __`patterns` (list)__: If given, restrict management to the resources
-    matching the patterns.
-
-<h2 id="requires.GCPRequires.enable_network_management">enable_network_management</h2>
-
-```python
-GCPRequires.enable_network_management(self)
-```
-
-Request the ability to manage networking (firewalls, subnets, etc).
-
 <h2 id="requires.GCPRequires.enable_instance_inspection">enable_instance_inspection</h2>
 
 ```python
@@ -125,11 +90,51 @@ GCPRequires.enable_instance_inspection(self)
 
 Request the ability to inspect instances.
 
-<h2 id="requires.GCPRequires.enable_dns">enable_dns</h2>
+<h2 id="requires.GCPRequires.enable_network_management">enable_network_management</h2>
 
 ```python
-GCPRequires.enable_dns(self)
+GCPRequires.enable_network_management(self)
+```
+
+Request the ability to manage networking.
+
+<h2 id="requires.GCPRequires.enable_security_management">enable_security_management</h2>
+
+```python
+GCPRequires.enable_security_management(self)
+```
+
+Request the ability to manage security (e.g., firewalls).
+
+<h2 id="requires.GCPRequires.enable_block_storage_management">enable_block_storage_management</h2>
+
+```python
+GCPRequires.enable_block_storage_management(self)
+```
+
+Request the ability to manage block storage.
+
+<h2 id="requires.GCPRequires.enable_dns_management">enable_dns_management</h2>
+
+```python
+GCPRequires.enable_dns_management(self)
 ```
 
 Request the ability to manage DNS.
+
+<h2 id="requires.GCPRequires.enable_object_storage_access">enable_object_storage_access</h2>
+
+```python
+GCPRequires.enable_object_storage_access(self)
+```
+
+Request the ability to access object storage.
+
+<h2 id="requires.GCPRequires.enable_object_storage_management">enable_object_storage_management</h2>
+
+```python
+GCPRequires.enable_object_storage_management(self)
+```
+
+Request the ability to manage object storage.
 
