@@ -1,6 +1,6 @@
 # Overview
 
-This layer encapsulates the `gcp-integration` interface communciation protocol
+This layer encapsulates the `gcp-integration` interface communication protocol
 and provides an API for charms on either side of relations using this
 interface.
 
