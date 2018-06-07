@@ -38,7 +38,7 @@ from charms.reactive import clear_flag, toggle_flag
 READ_BLOCK_SIZE = 2048
 
 
-class GCPRequires(Endpoint):
+class GCPIntegrationRequires(Endpoint):
     """
     Interface to request integration access.
 

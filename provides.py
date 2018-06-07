@@ -18,7 +18,7 @@ from charms.reactive import when
 from charms.reactive import toggle_flag, clear_flag
 
 
-class GCPProvides(Endpoint):
+class GCPIntegrationProvides(Endpoint):
     """
     Example usage:
 

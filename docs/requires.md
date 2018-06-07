@@ -19,10 +19,10 @@ The flags that are set by the requires side of this interface are:
   running.  This flag is automatically removed if new integration features
   are requested.  It should not be removed by the charm.
 
-<h1 id="requires.GCPRequires">GCPRequires</h1>
+<h1 id="requires.GCPIntegrationRequires">GCPIntegrationRequires</h1>
 
 ```python
-GCPRequires(self, *args, **kwargs)
+GCPIntegrationRequires(self, *args, **kwargs)
 ```
 
 Interface to request integration access.
@@ -55,25 +55,25 @@ def gcp_integration_ready():
     update_config_enable_gcp()
 ```
 
-<h2 id="requires.GCPRequires.instance">instance</h2>
+<h2 id="requires.GCPIntegrationRequires.instance">instance</h2>
 
 
 This unit's instance name.
 
-<h2 id="requires.GCPRequires.is_ready">is_ready</h2>
+<h2 id="requires.GCPIntegrationRequires.is_ready">is_ready</h2>
 
 
 Whether or not the request for this instance has been completed.
 
-<h2 id="requires.GCPRequires.zone">zone</h2>
+<h2 id="requires.GCPIntegrationRequires.zone">zone</h2>
 
 
 The zone this unit is in.
 
-<h2 id="requires.GCPRequires.label_instance">label_instance</h2>
+<h2 id="requires.GCPIntegrationRequires.label_instance">label_instance</h2>
 
 ```python
-GCPRequires.label_instance(self, labels)
+GCPIntegrationRequires.label_instance(self, labels)
 ```
 
 Request that the given labels be applied to this instance.
@@ -82,58 +82,58 @@ __Parameters__
 
 - __`labels` (dict)__: Mapping of labels names to values.
 
-<h2 id="requires.GCPRequires.enable_instance_inspection">enable_instance_inspection</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_instance_inspection">enable_instance_inspection</h2>
 
 ```python
-GCPRequires.enable_instance_inspection(self)
+GCPIntegrationRequires.enable_instance_inspection(self)
 ```
 
 Request the ability to inspect instances.
 
-<h2 id="requires.GCPRequires.enable_network_management">enable_network_management</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_network_management">enable_network_management</h2>
 
 ```python
-GCPRequires.enable_network_management(self)
+GCPIntegrationRequires.enable_network_management(self)
 ```
 
 Request the ability to manage networking.
 
-<h2 id="requires.GCPRequires.enable_security_management">enable_security_management</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_security_management">enable_security_management</h2>
 
 ```python
-GCPRequires.enable_security_management(self)
+GCPIntegrationRequires.enable_security_management(self)
 ```
 
 Request the ability to manage security (e.g., firewalls).
 
-<h2 id="requires.GCPRequires.enable_block_storage_management">enable_block_storage_management</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_block_storage_management">enable_block_storage_management</h2>
 
 ```python
-GCPRequires.enable_block_storage_management(self)
+GCPIntegrationRequires.enable_block_storage_management(self)
 ```
 
 Request the ability to manage block storage.
 
-<h2 id="requires.GCPRequires.enable_dns_management">enable_dns_management</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_dns_management">enable_dns_management</h2>
 
 ```python
-GCPRequires.enable_dns_management(self)
+GCPIntegrationRequires.enable_dns_management(self)
 ```
 
 Request the ability to manage DNS.
 
-<h2 id="requires.GCPRequires.enable_object_storage_access">enable_object_storage_access</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_object_storage_access">enable_object_storage_access</h2>
 
 ```python
-GCPRequires.enable_object_storage_access(self)
+GCPIntegrationRequires.enable_object_storage_access(self)
 ```
 
 Request the ability to access object storage.
 
-<h2 id="requires.GCPRequires.enable_object_storage_management">enable_object_storage_management</h2>
+<h2 id="requires.GCPIntegrationRequires.enable_object_storage_management">enable_object_storage_management</h2>
 
 ```python
-GCPRequires.enable_object_storage_management(self)
+GCPIntegrationRequires.enable_object_storage_management(self)
 ```
 
 Request the ability to manage object storage.

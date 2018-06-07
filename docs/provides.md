@@ -12,10 +12,10 @@ The flags that are set by the provides side of this interface are:
   whatever actions are necessary to satisfy those requests, and then mark
   them as complete.
 
-<h1 id="provides.GCPProvides">GCPProvides</h1>
+<h1 id="provides.GCPIntegrationProvides">GCPIntegrationProvides</h1>
 
 ```python
-GCPProvides(self, endpoint_name, relation_ids=None)
+GCPIntegrationProvides(self, endpoint_name, relation_ids=None)
 ```
 
 Example usage:
@@ -43,30 +43,30 @@ def handle_requests():
     gcp.mark_completed()
 ```
 
-<h2 id="provides.GCPProvides.relation_ids">relation_ids</h2>
+<h2 id="provides.GCPIntegrationProvides.relation_ids">relation_ids</h2>
 
 
 A list of the IDs of all established relations.
 
-<h2 id="provides.GCPProvides.requests">requests</h2>
+<h2 id="provides.GCPIntegrationProvides.requests">requests</h2>
 
 
 A list of the new or updated `IntegrationRequests` that
 have been made.
 
-<h2 id="provides.GCPProvides.get_departed_charms">get_departed_charms</h2>
+<h2 id="provides.GCPIntegrationProvides.get_departed_charms">get_departed_charms</h2>
 
 ```python
-GCPProvides.get_departed_charms(self)
+GCPIntegrationProvides.get_departed_charms(self)
 ```
 
 Get a list of all charms that have had all units depart since the
 last time this was called.
 
-<h2 id="provides.GCPProvides.mark_completed">mark_completed</h2>
+<h2 id="provides.GCPIntegrationProvides.mark_completed">mark_completed</h2>
 
 ```python
-GCPProvides.mark_completed(self)
+GCPIntegrationProvides.mark_completed(self)
 ```
 
 Mark all requests as completed and remove the `requests-pending` flag.

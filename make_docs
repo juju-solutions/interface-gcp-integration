@@ -8,8 +8,10 @@ import pydocmd.__main__
 
 
 with patch('charmhelpers.core.hookenv.metadata') as metadata:
-    metadata.return_value = {'requires': {'gcp': {'interface': 'gcp'}},
-                             'provides': {'gcp': {'interface': 'gcp'}}}
+    metadata.return_value = {
+        'requires': {'gcp': {'interface': 'gcp-integration'}},
+        'provides': {'gcp': {'interface': 'gcp-integration'}},
+    }
     sys.path.insert(0, '.')
     print(sys.argv)
     if len(sys.argv) == 1:
