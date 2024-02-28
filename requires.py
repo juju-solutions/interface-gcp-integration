@@ -18,7 +18,6 @@ The flags that are set by the requires side of this interface are:
   are requested.  It should not be removed by the charm.
 """
 
-
 import os
 import random
 import string
@@ -70,11 +69,12 @@ class GCPIntegrationRequires(Endpoint):
         update_config_enable_gcp()
     ```
     """
+
     # https://cloud.google.com/compute/docs/storing-retrieving-metadata
-    _metadata_url = 'http://metadata.google.internal/computeMetadata/v1/'
-    _instance_url = urljoin(_metadata_url, 'instance/name')
-    _zone_url = urljoin(_metadata_url, 'instance/zone')
-    _metadata_headers = {'Metadata-Flavor': 'Google'}
+    _metadata_url = "http://metadata.google.internal/computeMetadata/v1/"
+    _instance_url = urljoin(_metadata_url, "instance/name")
+    _zone_url = urljoin(_metadata_url, "instance/zone")
+    _metadata_headers = {"Metadata-Flavor": "Google"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -99,23 +99,23 @@ class GCPIntegrationRequires(Endpoint):
         """
         return self.relations[0].to_publish
 
-    @when('endpoint.{endpoint_name}.joined')
+    @when("endpoint.{endpoint_name}.joined")
     def send_instance_info(self):
-        self._to_publish['charm'] = hookenv.charm_name()
-        self._to_publish['instance'] = self.instance
-        self._to_publish['zone'] = self.zone
-        self._to_publish['model-uuid'] = os.environ['JUJU_MODEL_UUID']
+        self._to_publish["charm"] = hookenv.charm_name()
+        self._to_publish["instance"] = self.instance
+        self._to_publish["zone"] = self.zone
+        self._to_publish["model-uuid"] = os.environ["JUJU_MODEL_UUID"]
 
-    @when('endpoint.{endpoint_name}.changed')
+    @when("endpoint.{endpoint_name}.changed")
     def check_ready(self):
         # My middle name is ready. No, that doesn't sound right.
         # I eat ready for breakfast.
-        toggle_flag(self.expand_name('ready'), self.is_ready)
-        clear_flag(self.expand_name('changed'))
+        toggle_flag(self.expand_name("ready"), self.is_ready)
+        clear_flag(self.expand_name("changed"))
 
-    @when_not('endpoint.{endpoint_name}.joined')
+    @when_not("endpoint.{endpoint_name}.joined")
     def remove_ready(self):
-        clear_flag(self.expand_name('ready'))
+        clear_flag(self.expand_name("ready"))
 
     @property
     def instance(self):
@@ -123,15 +123,14 @@ class GCPIntegrationRequires(Endpoint):
         This unit's instance name.
         """
         if self._instance is None:
-            cache_key = self.expand_name('instance')
+            cache_key = self.expand_name("instance")
             cached = unitdata.kv().get(cache_key)
             if cached:
                 self._instance = cached
             else:
-                req = Request(self._instance_url,
-                              headers=self._metadata_headers)
+                req = Request(self._instance_url, headers=self._metadata_headers)
                 with urlopen(req) as fd:
-                    instance = fd.read(READ_BLOCK_SIZE).decode('utf8').strip()
+                    instance = fd.read(READ_BLOCK_SIZE).decode("utf8").strip()
                     self._instance = instance
                 unitdata.kv().set(cache_key, self._instance)
         return self._instance
@@ -142,16 +141,15 @@ class GCPIntegrationRequires(Endpoint):
         The zone this unit is in.
         """
         if self._zone is None:
-            cache_key = self.expand_name('zone')
+            cache_key = self.expand_name("zone")
             cached = unitdata.kv().get(cache_key)
             if cached:
                 self._zone = cached
             else:
-                req = Request(self._zone_url,
-                              headers=self._metadata_headers)
+                req = Request(self._zone_url, headers=self._metadata_headers)
                 with urlopen(req) as fd:
-                    zone = fd.read(READ_BLOCK_SIZE).decode('utf8').strip()
-                    self._zone = zone.split('/')[-1]
+                    zone = fd.read(READ_BLOCK_SIZE).decode("utf8").strip()
+                    self._zone = zone.split("/")[-1]
                 unitdata.kv().set(cache_key, self._zone)
         return self._zone
 
@@ -160,20 +158,20 @@ class GCPIntegrationRequires(Endpoint):
         """
         Whether or not the request for this instance has been completed.
         """
-        requested = self._to_publish['requested']
-        completed = self._received.get('completed', {}).get(self.instance)
+        requested = self._to_publish["requested"]
+        completed = self._received.get("completed", {}).get(self.instance)
         return requested and requested == completed
 
     @property
     def credentials(self):
-        return self._received['credentials']
+        return self._received["credentials"]
 
     def _request(self, keyvals):
         alphabet = string.ascii_letters + string.digits
-        nonce = ''.join(random.choice(alphabet) for _ in range(8))
+        nonce = "".join(random.choice(alphabet) for _ in range(8))
         self._to_publish.update(keyvals)
-        self._to_publish['requested'] = nonce
-        clear_flag(self.expand_name('ready'))
+        self._to_publish["requested"] = nonce
+        clear_flag(self.expand_name("ready"))
 
     def label_instance(self, labels):
         """
@@ -182,46 +180,46 @@ class GCPIntegrationRequires(Endpoint):
         # Parameters
         `labels` (dict): Mapping of labels names to values.
         """
-        self._request({'instance-labels': dict(labels)})
+        self._request({"instance-labels": dict(labels)})
 
     def enable_instance_inspection(self):
         """
         Request the ability to inspect instances.
         """
-        self._request({'enable-instance-inspection': True})
+        self._request({"enable-instance-inspection": True})
 
     def enable_network_management(self):
         """
         Request the ability to manage networking.
         """
-        self._request({'enable-network-management': True})
+        self._request({"enable-network-management": True})
 
     def enable_security_management(self):
         """
         Request the ability to manage security (e.g., firewalls).
         """
-        self._request({'enable-security-management': True})
+        self._request({"enable-security-management": True})
 
     def enable_block_storage_management(self):
         """
         Request the ability to manage block storage.
         """
-        self._request({'enable-block-storage-management': True})
+        self._request({"enable-block-storage-management": True})
 
     def enable_dns_management(self):
         """
         Request the ability to manage DNS.
         """
-        self._request({'enable-dns': True})
+        self._request({"enable-dns": True})
 
     def enable_object_storage_access(self):
         """
         Request the ability to access object storage.
         """
-        self._request({'enable-object-storage-access': True})
+        self._request({"enable-object-storage-access": True})
 
     def enable_object_storage_management(self):
         """
         Request the ability to manage object storage.
         """
-        self._request({'enable-object-storage-management': True})
+        self._request({"enable-object-storage-management": True})
