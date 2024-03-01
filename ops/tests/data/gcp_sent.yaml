@@ -1,0 +1,17 @@
+egress-subnets: 172.31.39.57/32
+ingress-address: 172.31.39.57
+private-address: 172.31.39.57
+enable-block-storage-management: "true"
+enable-dns: "true"
+enable-instance-inspection: "true"
+enable-network-management: "true"
+enable-security-management: "true"
+instance-labels: '{"tag1": "val1", "tag2": "val2"}'
+enable-object-storage-management: "true"
+enable-object-storage-access: "true"
+zone: '"us-east-1"'
+requested: "true"
+charm: "test"
+instance: '"i-abcdefghijklmnopq"'
+zone: '"us-east1"'
+model-uuid: '"cf67b90e-7201-4f23-8c0a-e1f453f1dc2e"'
