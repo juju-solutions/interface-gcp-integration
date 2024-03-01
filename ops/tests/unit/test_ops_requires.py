@@ -89,7 +89,7 @@ def test_is_ready_no_relation(harness, event_type):
 
 
 def test_is_ready_success(harness):
-    chksum = "e595c1619f2c63d4d237b20af77b1451b2912e878ce3dff666e49de2794df745"
+    chksum = "72bd9ed0dbf680ea356bca7d78f1cda9e6484227f0d270b0602128ecb622686f"
     completed = '{"i-abcdefghijklmnopq": "%s"}' % chksum
     harness.add_relation("gcp", "remote", unit_data={"completed": completed})
     assert harness.charm.gcp.is_ready is True

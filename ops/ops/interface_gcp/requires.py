@@ -116,9 +116,15 @@ class GCPIntegrationRequires(ops.Object):
         info = {
             "charm": self.charm.meta.name,
             "instance": self.instance_id,
-            "zone": self.zone,
             "model-uuid": os.environ["JUJU_MODEL_UUID"],
+            "zone": self.zone,
         }
+        log.info(
+            "%s is instance=%s in zone=%s",
+            self.charm.unit.name,
+            self.instance_id,
+            self.zone,
+        )
         self._request(info)
 
     @cached_property
@@ -145,7 +151,16 @@ class GCPIntegrationRequires(ops.Object):
         completed = json.loads(self._received.get("completed", "{}")).get(
             self.instance_id
         )
-        return bool(requested and requested == completed)
+        ready = bool(requested and requested == completed)
+        if not requested:
+            log.warning("Local end has yet to request integration")
+        if not completed:
+            log.warning("Remote end has yet to calculate a response")
+        elif not ready:
+            log.warning(
+                "Waiting for completed=%s to be requested=%s", completed, requested
+            )
+        return ready
 
     @property
     def credentials(self):
@@ -165,9 +180,14 @@ class GCPIntegrationRequires(ops.Object):
 
     @property
     def _expected_hash(self):
-        return sha256(
-            json.dumps(dict(self._to_publish), sort_keys=True).encode("utf8")
-        ).hexdigest()
+        def from_json(s: str):
+            try:
+                return json.loads(s)
+            except json.decoder.JSONDecodeError:
+                return s
+
+        to_sha = {key: from_json(val) for key, val in self._to_publish.items()}
+        return sha256(json.dumps(to_sha, sort_keys=True).encode()).hexdigest()
 
     def _request(self, keyvals):
         kwds = {key: json.dumps(val) for key, val in keyvals.items()}
